@@ -2,9 +2,10 @@
 
 ## Materials
 
-A 8x10 board
-five blue pieces and five red pieces with a symbol on one side (scouts) 
-two 2x2 pieces (boulders)
+1. A 8x10 board
+2. five red pieces with a symbol on one side (red scouts) 
+3. five blue pieces with a symbol on one side (blue scouts)
+4. two 2x2 pieces (boulders)
 
 ## Setup
 
