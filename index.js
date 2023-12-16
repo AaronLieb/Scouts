@@ -1,6 +1,9 @@
-const boardEle = document.getElementById("board")
+let boardEle = document.getElementById("board")
 const turnEle = document.getElementById("turnText")
 const playsEle = document.getElementById("playText")
+const infoEle = document.getElementById("info")
+const gameEle = document.getElementById("game-container")
+const titleEle = document.getElementById("title")
 const WIDTH = 8
 const HEIGHT = 10
 
@@ -27,6 +30,9 @@ let board = [
 ]
 
 
+let previous = null
+
+
 // start of game
 let placed = [0, 0];
 
@@ -36,6 +42,8 @@ let changeTurn = true;
 let plays = 0;
 let lastPlay = null;
 let jumping = null;
+let boulders = [false, false]
+
 
 
 const printBoard = () => {
@@ -45,12 +53,13 @@ const printBoard = () => {
   console.log(turn ? "blue" : "red", "moved")
 }
 
+
 const validStart = (a) => {
   return board[a[0]][a[1]] == '.' && a[0] == 9 * !turn
 }
 
 const validJump = (a, b) => {
-  return !(a[0] == lastPlay[0] && a[1] == lastPlay[1]) &&
+  return (lastPlay == null || !(a[0] == lastPlay[0] && a[1] == lastPlay[1])) &&
     (jumping == null || (jumping[0] == a[0] && jumping[1] == a[1])) &&
     (a[0] == b[0] || a[1] == b[1]) &&
     (Math.abs(a[0] - b[0]) == 2 || Math.abs(a[1] - b[1]) == 2) &&
@@ -59,11 +68,21 @@ const validJump = (a, b) => {
 }
 
 const validDash = (a, b) => {
-  return !(a[0] == lastPlay[0] && a[1] == lastPlay[1]) &&
+  return (lastPlay == null || !(a[0] == lastPlay[0] && a[1] == lastPlay[1])) &&
     (jumping == null || (jumping[0] == a[0] && jumping[1] == a[1])) &&
     Math.abs(a[0] - b[0]) < 2 &&
     Math.abs(a[1] - b[1]) < 2 &&
     board[b[0]][b[1]] == '.'
+}
+
+const validBoulder = (a) => {
+  return jumping == null &&
+    a[0] <= 8 &&
+    a[1] <= 6 &&
+    board[a[0]][a[1]] == '.' &&
+    board[a[0] + 1][a[1]] == '.' &&
+    board[a[0]][a[1] + 1] == '.' &&
+    board[a[0] + 1][a[1] + 1] == '.'
 }
 
 const setBoard = (ele, pos, symbol) => {
@@ -73,7 +92,7 @@ const setBoard = (ele, pos, symbol) => {
 
 const switchTurns = () => {
   turn = +!turn;
-  turnText.innerText = `Turn: ${turn ? "blue" : "red"}`
+  turnText.innerText = turn ? "Blue" : "Red"
   lastPlay = null;
 }
 
@@ -88,6 +107,48 @@ const endPlay = () => {
   playText.innerText = `Plays remaining: ${2 - plays}`
 }
 
+const saveBoard = () => {
+  previous = {
+    plays: plays,
+    board: JSON.parse(JSON.stringify(board)),
+    boardEle: boardEle.cloneNode(true),
+    turn: turn,
+    jumping: jumping?.slice(),
+    lastPlay: lastPlay?.slice(),
+    boulders: boulders?.slice(),
+    changeTurn: changeTurn,
+    placed: placed?.slice(),
+    turnEle: turnEle.innerHTML,
+    playsEle: playsEle.innerHTML,
+    state: state,
+  }
+}
+
+
+const undo = () => {
+  if (previous == null) return;
+  board = JSON.parse(JSON.stringify(previous.board))
+  gameEle.removeChild(boardEle)
+  boardEle = previous.boardEle
+  gameEle.insertBefore(boardEle, infoEle)
+  let children = boardEle.children
+  for (let child of children) {
+    child.onclick = clickSquare
+  }
+  plays = previous.plays
+  turn = previous.turn
+  jumping = previous.jumping?.slice()
+  lastPlay = previous.lastPlay?.slice()
+  boulders = previous.boulders?.slice()
+  changeTurn = previous.changeTurn
+  placed = previous.placed?.slice()
+  turnEle.innerHTML = previous.turnEle;
+  playsEle.innerHTML = previous.playsEle;
+  state = previous.state;
+  previous = null;
+}
+
+
 const clickSquare = (e) => {
   ele = e.target;
   pos = ele.id.split(" ").map(x => parseInt(x, 10))
@@ -101,6 +162,7 @@ const clickSquare = (e) => {
       console.log("Invalid move");
       return;
     }
+    saveBoard()
     setBoard(ele, pos, turnSymbol)
     placed[turn] += 1;
     if (turn == 1 && placed[turn] == 5) {
@@ -114,23 +176,39 @@ const clickSquare = (e) => {
   // PLAYING
   else if (state == Game.PLAY) {
     if (selected == null) {
-      if (piece == '.' || piece != turnSymbol) {
+      if (piece.toLowerCase() != turnSymbol && !validBoulder(pos)) {
         console.log("Invalid move")
         return
+      } else if (validBoulder(pos)) {
+        saveBoard()
+        setBoard(ele, pos, 'B')
+        setBoard(document.getElementById(`${pos[0]} ${pos[1] + 1}`), [pos[0], pos[1] + 1], 'B')
+        setBoard(document.getElementById(`${pos[0] + 1} ${pos[1]}`), [pos[0] + 1, pos[1]], 'B')
+        setBoard(document.getElementById(`${pos[0] + 1} ${pos[1] + 1}`), [pos[0] + 1, pos[1] + 1], 'B')
+      } else {
+        selected = { ele: ele, pos: pos, piece: piece }
+        console.log("selected:", selected)
+        changeTurn = false;
       }
-      selected = { ele: ele, pos: pos }
-      console.log("selected:", selected)
-      changeTurn = false;
     } else {
       if (validJump(selected.pos, pos)) {
+        saveBoard()
         changeTurn = false;
+        if (pos[0] == 9 * turn) {
+          selected.piece = selected.piece.toUpperCase();
+        }
         setBoard(selected.ele, selected.pos, '.')
-        setBoard(ele, pos, turnSymbol)
-        selected = null;
+        setBoard(ele, pos, selected.piece)
+        selected = { ele: ele, pos: pos, piece: selected.piece }
         jumping = pos;
       } else if (validDash(selected.pos, pos)) {
+        saveBoard()
+        if (pos[0] == 9 * turn) {
+          selected.piece = selected.piece.toUpperCase();
+        }
+        console.log(selected, ele, pos)
         setBoard(selected.ele, selected.pos, '.')
-        setBoard(ele, pos, turnSymbol)
+        setBoard(ele, pos, selected.piece)
         selected = null;
         lastPlay = pos
       } else {
@@ -138,6 +216,10 @@ const clickSquare = (e) => {
         selected = null;
         return
       }
+    }
+    if (turnSymbol.toUpperCase() == selected.piece && pos[0] == 9 * !turn) {
+      titleEle.innerText = `${turn ? "Blue" : "Red"} Wins!`;
+      clickSquare = () => { }
     }
     // plays and switching players
     if (changeTurn) endPlay()

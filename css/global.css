@@ -40,7 +40,23 @@
   background-color: red;
 }
 
+.X {
+  background-color: pink;
+}
+
 .o {
   background-color: blue;
+}
+
+.O {
+  background-color: cyan;
+}
+
+.B {
+  background-color: black;
+}
+
+#turnText {
+  text-align: center;
 }
 

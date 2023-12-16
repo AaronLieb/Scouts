@@ -11,16 +11,17 @@
   <main>
     <div id="game-container">
       <hgroup>
-        <h1>Scouts</h1>
+        <h1 id="title">Scouts</h1>
         <p><a href="https://github.com/AaronLieb/Scouts">Read the rules</a></p>
       </hgroup>
       <div id="board">
       </div>
-      <hgroup>
-        <h2 id="turnText">Turn: red</h2>
-        <h2 id="playText">Plays Remaining: 1</h2>
-        <a href="javascript:endPlay()">End Play</a>
+      <hgroup id="info">
+        <h2 id="turnText">Red</h2>
+        <h4 id="playText">Plays Remaining: 1</h4>
       </hgroup>
+      <a href="javascript:endPlay()">End Play</a>
+      <a href="javascript:undo()">Undo</a>
     </div>
   </main>
 </body>
